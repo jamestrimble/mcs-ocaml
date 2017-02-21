@@ -85,7 +85,7 @@ let remove_v v bidomains =
   if min_set_size head' == 0 then tail
   else head' :: tail
 
-let rec solve g0 g1 incumbent current bidomains =
+let rec search g0 g1 incumbent current bidomains =
   x.nodes <- x.nodes + 1;
   Printf.printf "%i\n" x.nodes;
 (*  Printf.printf "%i\n" (List.length incumbent);
@@ -110,10 +110,10 @@ let rec solve g0 g1 incumbent current bidomains =
     let v = List.hd head.left in
     (* try mapping v to each w in turn *)
     let incumbent'' =
-      let fn = fun incumb w -> solve g0 g1 incumb ((v,w)::current) (filter g0 g1 v w bidomains') in
+      let fn = fun incumb w -> search g0 g1 incumb ((v,w)::current) (filter g0 g1 v w bidomains') in
       List.fold_left fn incumbent' head.right in 
     (* try leaving vertex v unassigned *)
-    solve g0 g1 incumbent'' current (remove_v v bidomains')
+    search g0 g1 incumbent'' current (remove_v v bidomains')
 
 let adjrow_deg adjrow =
   let x = Array.fold_left (fun a b -> if (b land 1) == 1 then a+1 else a) 0 adjrow in
@@ -166,7 +166,7 @@ let () =
   let g1' = induced_subgraph g1 (Array.of_list vv1) in 
   let initial_label_classes = get_label_classes g0' g1' in
   Printf.printf "Number of label classes %i\n" (List.length initial_label_classes);
-  let solution = solve g0' g1' [[]] [] initial_label_classes in
+  let solution = search g0' g1' [[]] [] initial_label_classes in
   Printf.printf "Best size %i\n" (List.length (List.hd solution));
   Printf.printf "Length %i\n" (List.length solution);
   List.iter (fun m ->
