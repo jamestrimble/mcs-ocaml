@@ -4,4 +4,5 @@ type graph =
     n : int;
   }
 
-val mcs : graph -> graph -> (int * int) list list
+val mcs :
+  graph -> graph -> ((int * int) list -> bool) -> (int * int) list list

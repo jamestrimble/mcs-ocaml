@@ -28,7 +28,7 @@ let () =
   let fname1 = Sys.argv.(2) in
   let g0 = read_graph fname0 in
   let g1 = read_graph fname1 in
-  let solution = Mcs.mcs g0 g1 in
+  let solution = Mcs.mcs g0 g1 (fun m -> true) in
   Printf.printf "Best size %i\n" (List.length (List.hd solution));
   Printf.printf "Length %i\n" (List.length solution);
   List.iter (fun m ->

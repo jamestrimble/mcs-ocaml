@@ -56,10 +56,14 @@ let remove_v v bidomains =
       } in
     head' :: tail
 
-let rec search g0 g1 incumbent current bidomains =
+let rec search validate_mapping g0 g1 incumbent current bidomains =
   let incumbent' =
-    if      List.length current <  List.length (List.hd incumbent) then incumbent
-    else if List.length current == List.length (List.hd incumbent) then current :: incumbent
+    if validate_mapping current then
+      (
+        if      List.length current <  List.length (List.hd incumbent) then incumbent
+        else if List.length current == List.length (List.hd incumbent) then current :: incumbent
+        else [current]
+      )
     else [current] in
   let best_mapping_sz = List.length (List.hd incumbent') in
   if List.length bidomains==0 || bound current bidomains < best_mapping_sz then incumbent'
@@ -69,10 +73,11 @@ let rec search g0 g1 incumbent current bidomains =
     let v = List.hd head.left in
     (* try mapping v to each w in turn *)
     let incumbent'' =
-      let fn = fun incumb w -> search g0 g1 incumb ((v,w)::current) (filter g0 g1 v w bidomains') in
+      let fn = fun incumb w ->
+        search validate_mapping g0 g1 incumb ((v,w)::current) (filter g0 g1 v w bidomains') in
       List.fold_left fn incumbent' head.right in 
     (* try leaving vertex v unassigned *)
-    search g0 g1 incumbent'' current (remove_v v bidomains')
+    search validate_mapping g0 g1 incumbent'' current (remove_v v bidomains')
 
 let adjrow_deg adjrow =
   (Array.fold_left (fun a b -> if (b land 1) == 1 then a+1 else a) 0 adjrow +
@@ -119,12 +124,12 @@ let get_label_classes g0 g1 =
 let renumber_solution vv0 vv1 sol =
     List.map (fun m -> List.map (fun pair -> vv0.(fst pair), vv1.(snd pair)) m) sol
 
-let mcs g0 g1 =
+let mcs g0 g1 validate_mapping =
   let vv0 = vv_order g0 in
   let vv1 = vv_order g1 in
   let g0' = induced_subgraph g0 vv0 in
   let g1' = induced_subgraph g1 vv1 in 
   let initial_label_classes = get_label_classes g0' g1' in
-  search g0' g1' [[]] [] initial_label_classes
+  search validate_mapping g0' g1' [[]] [] initial_label_classes
     |> renumber_solution vv0 vv1
     |> List.map (fun m -> List.sort (fun pair0 pair1 -> fst pair0 - fst pair1) m)
