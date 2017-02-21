@@ -122,17 +122,15 @@ let get_label_classes g0 g1 =
   Printf.printf "Number of colours %i\n" (List.length colours);
   List.map (get_label_class g0 g1) colours |> List.filter (fun b -> min_set_size b > 0)
 
+let renumber_solution vv0 vv1 sol =
+    List.map (fun m -> List.map (fun pair -> List.nth vv0 (fst pair), List.nth vv1 (snd pair)) m) sol
+
 let mcs g0 g1 =
   let vv0 = vv_order g0 in
   let vv1 = vv_order g1 in
   let g0' = induced_subgraph g0 (Array.of_list vv0) in
   let g1' = induced_subgraph g1 (Array.of_list vv1) in 
   let initial_label_classes = get_label_classes g0' g1' in
-  Printf.printf "Number of label classes %i\n" (List.length initial_label_classes);
-  let unsorted_solution = search g0' g1' [[]] [] initial_label_classes in
-  let solution =
-    let renumber_fun m = List.map (fun pair -> List.nth vv0 (fst pair), List.nth vv1 (snd pair)) m in
-    List.map renumber_fun unsorted_solution in
-  let sort_fun m = List.sort (fun pair0 pair1 -> fst pair0 - fst pair1) m in
-  List.map sort_fun solution
-
+  search g0' g1' [[]] [] initial_label_classes
+    |> renumber_solution vv0 vv1
+    |> List.map (fun m -> List.sort (fun pair0 pair1 -> fst pair0 - fst pair1) m)
