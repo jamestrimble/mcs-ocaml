@@ -1,9 +1,3 @@
-type y =
-  { mutable nodes : int
-  }
-
-let x = {nodes = 0}
-
 type graph =
   { adjmat : int array array;
     colours : int array;
@@ -86,8 +80,6 @@ let remove_v v bidomains =
   else head' :: tail
 
 let rec search g0 g1 incumbent current bidomains =
-  x.nodes <- x.nodes + 1;
-  Printf.printf "%i\n" x.nodes;
 (*  Printf.printf "%i\n" (List.length incumbent);
   Printf.printf "%i\n" (List.length current);
   List.iter (fun p ->
