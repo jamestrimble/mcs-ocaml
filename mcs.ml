@@ -147,11 +147,7 @@ let get_label_classes g0 g1 =
   Printf.printf "Number of colours %i\n" (List.length colours);
   List.map (get_label_class g0 g1) colours |> List.filter (fun b -> min_set_size b > 0)
 
-let () =
-  let fname0 = Sys.argv.(1) in
-  let fname1 = Sys.argv.(2) in
-  let g0 = read_graph fname0 in
-  let g1 = read_graph fname1 in
+let mcs g0 g1 =
   let vv0 = vv_order g0 in
   let vv1 = vv_order g1 in
   let g0' = induced_subgraph g0 (Array.of_list vv0) in
@@ -162,11 +158,17 @@ let () =
   let solution =
     let renumber_fun m = List.map (fun pair -> List.nth vv0 (fst pair), List.nth vv1 (snd pair)) m in
     List.map renumber_fun unsorted_solution in
-  let solution' =
-    let sort_fun m = List.sort (fun pair0 pair1 -> fst pair0 - fst pair1) m in
-    List.map sort_fun solution in
-  Printf.printf "Best size %i\n" (List.length (List.hd solution'));
-  Printf.printf "Length %i\n" (List.length solution');
+  let sort_fun m = List.sort (fun pair0 pair1 -> fst pair0 - fst pair1) m in
+  List.map sort_fun solution
+
+let () =
+  let fname0 = Sys.argv.(1) in
+  let fname1 = Sys.argv.(2) in
+  let g0 = read_graph fname0 in
+  let g1 = read_graph fname1 in
+  let solution = mcs g0 g1 in
+  Printf.printf "Best size %i\n" (List.length (List.hd solution));
+  Printf.printf "Length %i\n" (List.length solution);
   List.iter (fun m ->
     List.iter (fun p -> Printf.printf "(%i -> %i) " (fst p) (snd p)) m;
-    Printf.printf "\n") solution';
+    Printf.printf "\n") solution;
