@@ -10,6 +10,7 @@ type bidomain =
     right: int list;
   }
 
+(* Creates [start; start+1; ... ; one_past_end-1] *)
 let range start one_past_end =
   let rec aux a b lst =
     if a==b then lst else a::(aux (a+1) b lst) in
@@ -25,8 +26,7 @@ let bound current bidomains =
   List.fold_left (+) (List.length current) (List.map min_set_size bidomains)
 
 let sort_bidomains bidomains =
-  let cmp b0 b1 = max_set_size b0 - max_set_size b1 in
-  List.sort cmp bidomains
+  List.sort (fun b0 b1 -> max_set_size b0 - max_set_size b1) bidomains
 
 let filter_bidomain g0_adjrow g1_adjrow bidomain edge_type =
   { left = List.filter (fun u -> g0_adjrow.(u)==edge_type) bidomain.left;
@@ -39,34 +39,26 @@ let filter g0 g1 v w bidomains =
   let bidomains' = { left = List.filter (fun u -> u!=v) head.left;
                      right = List.filter (fun u -> u!=w) head.right;
                    } :: tail in
-  let g0_adjrow = g0.adjmat.(v) in
-  let g1_adjrow = g1.adjmat.(w) in
-  let fn = fun bidomain -> List.map (filter_bidomain g0_adjrow g1_adjrow bidomain) [0;1;2;3] in
-  List.map fn bidomains' |> List.concat |> List.filter (fun b -> min_set_size b > 0)
+  let fn = fun bidomain ->
+    List.map (filter_bidomain g0.adjmat.(v) g1.adjmat.(w) bidomain) [0;1;2;3] in
+  List.map fn bidomains'
+    |> List.concat
+    |> List.filter (fun b -> min_set_size b > 0)
 
 let remove_v v bidomains =
   let head = List.hd bidomains in
   let tail = List.tl bidomains in
-  let head' =
-    { left = List.filter (fun u -> u!=v) head.left;
-      right = head.right;
-    } in
-  if min_set_size head' == 0 then tail
-  else head' :: tail
+  if List.length head.left == 1 then tail
+  else
+    let head' =
+      { left = List.filter (fun u -> u!=v) head.left;
+        right = head.right;
+      } in
+    head' :: tail
 
 let rec search g0 g1 incumbent current bidomains =
-(*  Printf.printf "%i\n" (List.length incumbent);
-  Printf.printf "%i\n" (List.length current);
-  List.iter (fun p ->
-    Printf.printf "%i->%i  " (fst p) (snd p)) current;
-  Printf.printf "\n";
-  List.iter (fun b -> List.iter (Printf.printf "%i ") b.left;
-                      Printf.printf "   ";
-                      List.iter (Printf.printf "%i ") b.right;
-                      Printf.printf "\n") bidomains;
-  Printf.printf "\n"; *)
   let incumbent' =
-    if List.length current < List.length (List.hd incumbent) then incumbent
+    if      List.length current <  List.length (List.hd incumbent) then incumbent
     else if List.length current == List.length (List.hd incumbent) then current :: incumbent
     else [current] in
   let best_mapping_sz = List.length (List.hd incumbent') in
@@ -83,18 +75,20 @@ let rec search g0 g1 incumbent current bidomains =
     search g0 g1 incumbent'' current (remove_v v bidomains')
 
 let adjrow_deg adjrow =
-  let x = Array.fold_left (fun a b -> if (b land 1) == 1 then a+1 else a) 0 adjrow in
-  let y = Array.fold_left (fun a b -> if (b land 2) == 2 then a+1 else a) 0 adjrow in
-  x + y
+  (Array.fold_left (fun a b -> if (b land 1) == 1 then a+1 else a) 0 adjrow +
+   Array.fold_left (fun a b -> if (b land 2) == 2 then a+1 else a) 0 adjrow)
 
 let vv_order g =
-  range 0 g.n |> List.sort (fun v w -> adjrow_deg g.adjmat.(v) - adjrow_deg g.adjmat.(w)) |> List.rev 
+  range 0 g.n
+    |> List.sort (fun v w -> adjrow_deg g.adjmat.(v) - adjrow_deg g.adjmat.(w))
+    |> List.rev 
+    |> Array.of_list
 
 let induced_subgraph g vv =
   let n = Array.length vv in
-  let colours = Array.map (fun v -> g.colours.(v)) vv in
-  let adjmat = Array.map (fun v -> Array.map (fun w -> g.adjmat.(v).(w)) vv)
-                          vv in
+  let colours = vv |> Array.map (fun v -> g.colours.(v)) in
+  let adjmat = vv
+    |> Array.map (fun v -> Array.map (fun w -> g.adjmat.(v).(w)) vv) in
   { adjmat = adjmat;
     colours = colours;
     n      = n
@@ -123,13 +117,13 @@ let get_label_classes g0 g1 =
   List.map (get_label_class g0 g1) colours |> List.filter (fun b -> min_set_size b > 0)
 
 let renumber_solution vv0 vv1 sol =
-    List.map (fun m -> List.map (fun pair -> List.nth vv0 (fst pair), List.nth vv1 (snd pair)) m) sol
+    List.map (fun m -> List.map (fun pair -> vv0.(fst pair), vv1.(snd pair)) m) sol
 
 let mcs g0 g1 =
   let vv0 = vv_order g0 in
   let vv1 = vv_order g1 in
-  let g0' = induced_subgraph g0 (Array.of_list vv0) in
-  let g1' = induced_subgraph g1 (Array.of_list vv1) in 
+  let g0' = induced_subgraph g0 vv0 in
+  let g1' = induced_subgraph g1 vv1 in 
   let initial_label_classes = get_label_classes g0' g1' in
   search g0' g1' [[]] [] initial_label_classes
     |> renumber_solution vv0 vv1
