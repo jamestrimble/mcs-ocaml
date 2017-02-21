@@ -162,28 +162,6 @@ let () =
   let vv1 = vv_order g1 in
   let g0' = induced_subgraph g0 (Array.of_list vv0) in
   let g1' = induced_subgraph g1 (Array.of_list vv1) in 
-(*  Printf.printf "%i\n" g0'.n;
-  Printf.printf "%i\n" g1'.n;
-  Printf.printf "%i\n" g0'.colours.(0);
-  Printf.printf "%s\n" fname0;
-  Printf.printf "%s\n" fname1; *)
-  for i = 0 to g0'.n-1 do
-    for j = 0 to g0'.n-1 do
-      Printf.printf "%i " g0'.adjmat.(i).(j);
-    done;
-    Printf.printf "\n";
-  done;
-  Printf.printf "\n";
-  for i = 0 to g1'.n-1 do
-    for j = 0 to g1'.n-1 do
-      Printf.printf "%i " g1'.adjmat.(i).(j);
-    done;
-    Printf.printf "\n";
-  done;
-(*  Printf.printf "%i\n" (List.length left);
-  Printf.printf "%i\n" (List.nth left 0);
-  Printf.printf "%i\n" (List.nth left 3);
-  Printf.printf "%i\n" (List.nth left 17); *)
   let initial_label_classes = get_label_classes g0' g1' in
   Printf.printf "Number of label classes %i\n" (List.length initial_label_classes);
   let solution = solve g0' g1' [] [] initial_label_classes in
