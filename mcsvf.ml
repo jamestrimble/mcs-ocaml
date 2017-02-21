@@ -30,7 +30,7 @@ let () =
   let g1 = read_graph fname1 in
   let solution = Mcs.mcs g0 g1 (fun m -> true) in
   Printf.printf "Best size %i\n" (List.length (List.hd solution));
-  Printf.printf "Length %i\n" (List.length solution);
+  Printf.printf "Number of solutions %i\n" (List.length solution);
   List.iter (fun m ->
     List.iter (fun p -> Printf.printf "(%i -> %i) " (fst p) (snd p)) m;
     Printf.printf "\n") solution;
