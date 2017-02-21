@@ -59,7 +59,7 @@ let sort_bidomains bidomains =
   let cmp b0 b1 = max_set_size b0 - max_set_size b1 in
   List.sort cmp bidomains
 
-let filter_bidomain g0_adjrow g1_adjrow edge_type bidomain =
+let filter_bidomain g0_adjrow g1_adjrow bidomain edge_type =
   { left = List.filter (fun u -> g0_adjrow.(u)==edge_type) bidomain.left;
     right = List.filter (fun u -> g1_adjrow.(u)==edge_type) bidomain.right
   }
@@ -72,8 +72,8 @@ let filter g0 g1 v w bidomains =
                    } :: tail in
   let g0_adjrow = g0.adjmat.(v) in
   let g1_adjrow = g1.adjmat.(w) in
-  let fn = fun edge_type -> List.map (filter_bidomain g0_adjrow g1_adjrow edge_type) bidomains' in
-  List.map fn [0; 1; 2; 3] |> List.concat |> List.filter (fun b -> min_set_size b > 0)
+  let fn = fun bidomain -> List.map (filter_bidomain g0_adjrow g1_adjrow bidomain) [0;1;2;3] in
+  List.map fn bidomains' |> List.concat |> List.filter (fun b -> min_set_size b > 0)
 
 let remove_v v bidomains =
   let head = List.hd bidomains in
@@ -88,11 +88,16 @@ let remove_v v bidomains =
 let rec solve g0 g1 incumbent current bidomains =
   x.nodes <- x.nodes + 1;
   Printf.printf "%i\n" x.nodes;
-  Printf.printf "%i\n" (List.length incumbent);
+(*  Printf.printf "%i\n" (List.length incumbent);
   Printf.printf "%i\n" (List.length current);
   List.iter (fun p ->
     Printf.printf "%i->%i  " (fst p) (snd p)) current;
   Printf.printf "\n";
+  List.iter (fun b -> List.iter (Printf.printf "%i ") b.left;
+                      Printf.printf "   ";
+                      List.iter (Printf.printf "%i ") b.right;
+                      Printf.printf "\n") bidomains;
+  Printf.printf "\n"; *)
   let incumbent' =
     if List.length incumbent > List.length current then incumbent
     else current in
@@ -106,15 +111,15 @@ let rec solve g0 g1 incumbent current bidomains =
       let fn = fun incumb w -> solve g0 g1 incumb ((v,w)::current) (filter g0 g1 v w bidomains') in
       List.fold_left fn incumbent' head.right in 
     (* try leaving vertex v unassigned *)
-    solve g0 g1 incumbent'' current (remove_v v bidomains)
+    solve g0 g1 incumbent'' current (remove_v v bidomains')
 
 let adjrow_deg adjrow =
-  let x = Array.fold_left (fun a b -> if b land 1 == 1 then a+1 else a) 0 adjrow in
-  let y = Array.fold_left (fun a b -> if b land 2 == 2 then a+1 else a) 0 adjrow in
+  let x = Array.fold_left (fun a b -> if (b land 1) == 1 then a+1 else a) 0 adjrow in
+  let y = Array.fold_left (fun a b -> if (b land 2) == 2 then a+1 else a) 0 adjrow in
   x + y
 
 let vv_order g =
-  range 0 g.n |> List.sort (fun v w -> adjrow_deg g.adjmat.(v) - adjrow_deg g.adjmat.(w)) |> List.rev
+  range 0 g.n |> List.sort (fun v w -> adjrow_deg g.adjmat.(v) - adjrow_deg g.adjmat.(w)) |> List.rev 
 
 let induced_subgraph g vv =
   let n = Array.length vv in
@@ -156,7 +161,7 @@ let () =
   let vv0 = vv_order g0 in
   let vv1 = vv_order g1 in
   let g0' = induced_subgraph g0 (Array.of_list vv0) in
-  let g1' = induced_subgraph g1 (Array.of_list vv1) in
+  let g1' = induced_subgraph g1 (Array.of_list vv1) in 
 (*  Printf.printf "%i\n" g0'.n;
   Printf.printf "%i\n" g1'.n;
   Printf.printf "%i\n" g0'.colours.(0);
