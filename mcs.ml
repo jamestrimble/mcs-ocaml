@@ -10,11 +10,10 @@ type bidomain =
     right: int list;
   }
 
-(* function taken from http://ocaml.org/learn/tutorials/99problems.html *)
-let range a b =
-  let rec aux a b =
-	if a > b then [] else a :: aux (a+1) b  in
-  if a > b then List.rev (aux b a) else aux a b
+let range start one_past_end =
+  let rec aux a b lst =
+    if a==b then lst else a::(aux (a+1) b lst) in
+  aux start one_past_end []
 
 let read_word c =
   let first_byte = input_byte c in
@@ -80,7 +79,8 @@ let remove_v v bidomains =
   if min_set_size head' == 0 then tail
   else head' :: tail
 
-let solve g0 g1 incumbent current bidomains =
+let rec solve g0 g1 incumbent current bidomains =
+  Printf.printf "%i\n" (List.length incumbent);
   let incumbent' =
     if List.length incumbent > List.length current then incumbent
     else current in
@@ -88,9 +88,13 @@ let solve g0 g1 incumbent current bidomains =
   else
     let bidomains' = sort_bidomains bidomains in
     let head = List.hd bidomains' in
-    let tail = List.tl bidomains' in
     let v = List.hd head.left in
-    incumbent'
+    (* try mapping v to each w in turn *)
+    let incumbent'' =
+      let fn = fun incumb w -> solve g0 g1 incumb ((v,w)::current) (filter g0 g1 v w bidomains') in
+      List.fold_left fn incumbent' head.right in
+    (* try leaving vertex v unassigned *)
+    solve g0 g1 incumbent'' current (remove_v v bidomains)
 
 let () =
   let fname0 = Sys.argv.(1) in
@@ -108,8 +112,12 @@ let () =
     done;
     Printf.printf "\n";
   done;
-  let left = [] in
-  let right = [] in
+  let left = range 0 g0.n in
+  let right = range 0 g1.n in
+  Printf.printf "%i\n" (List.length left);
+  Printf.printf "%i\n" (List.nth left 0);
+  Printf.printf "%i\n" (List.nth left 3);
+  Printf.printf "%i\n" (List.nth left 17);
   let solution = solve g0 g1 [] [] [{left=left; right=right}] in
   Printf.printf "Length %i\n" (List.length solution);
 
