@@ -99,9 +99,11 @@ let rec solve g0 g1 incumbent current bidomains =
                       Printf.printf "\n") bidomains;
   Printf.printf "\n"; *)
   let incumbent' =
-    if List.length incumbent > List.length current then incumbent
-    else current in
-  if (bound current bidomains) <= (List.length incumbent') then incumbent'
+    if List.length current < List.length (List.hd incumbent) then incumbent
+    else if List.length current == List.length (List.hd incumbent) then current :: incumbent
+    else [current] in
+  let best_mapping_sz = List.length (List.hd incumbent') in
+  if List.length bidomains==0 || bound current bidomains < best_mapping_sz then incumbent'
   else
     let bidomains' = sort_bidomains bidomains in
     let head = List.hd bidomains' in
@@ -164,6 +166,11 @@ let () =
   let g1' = induced_subgraph g1 (Array.of_list vv1) in 
   let initial_label_classes = get_label_classes g0' g1' in
   Printf.printf "Number of label classes %i\n" (List.length initial_label_classes);
-  let solution = solve g0' g1' [] [] initial_label_classes in
+  let solution = solve g0' g1' [[]] [] initial_label_classes in
+  Printf.printf "Best size %i\n" (List.length (List.hd solution));
   Printf.printf "Length %i\n" (List.length solution);
+  List.iter (fun m ->
+    List.iter (fun p -> Printf.printf "(%i -> %i) " (fst p) (snd p)) m;
+    Printf.printf "\n") solution;
+
 
