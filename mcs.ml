@@ -1,3 +1,9 @@
+type y =
+  { mutable nodes : int
+  }
+
+let x = {nodes = 0}
+
 type graph =
   { adjmat : int array array;
     colours : int array;
@@ -80,11 +86,13 @@ let remove_v v bidomains =
   else head' :: tail
 
 let rec solve g0 g1 incumbent current bidomains =
-(*  Printf.printf "%i\n" (List.length incumbent);
+  x.nodes <- x.nodes + 1;
+  Printf.printf "%i\n" x.nodes;
+  Printf.printf "%i\n" (List.length incumbent);
   Printf.printf "%i\n" (List.length current);
   List.iter (fun p ->
     Printf.printf "%i->%i  " (fst p) (snd p)) current;
-  Printf.printf "%n"; *)
+  Printf.printf "\n";
   let incumbent' =
     if List.length incumbent > List.length current then incumbent
     else current in
@@ -118,6 +126,28 @@ let induced_subgraph g vv =
     n      = n
   }
 
+let all_colours g0 g1 =
+  let cc0 = Array.to_list g0.colours in
+  let cc1 = Array.to_list g1.colours in
+  let cc = List.sort (-) (List.append cc0 cc1) in
+  Printf.printf "cc len %i\n" (List.length cc);
+  let rec dedup lst =
+    match lst with
+    | [] -> []
+    | hd :: [] -> [hd] 
+    | f :: s :: tl -> if f==s then dedup (s::tl) else f::(dedup (s::tl)) in
+  dedup cc
+
+let get_label_class g0 g1 colour =
+  { left = List.filter (fun v -> g0.colours.(v)==colour) (range 0 g0.n);
+    right = List.filter (fun v -> g1.colours.(v)==colour) (range 0 g1.n)
+  }
+
+let get_label_classes g0 g1 =
+  let colours = all_colours g0 g1 in
+  Printf.printf "Number of colours %i\n" (List.length colours);
+  List.map (get_label_class g0 g1) colours |> List.filter (fun b -> min_set_size b > 0)
+
 let () =
   let fname0 = Sys.argv.(1) in
   let fname1 = Sys.argv.(2) in
@@ -145,12 +175,12 @@ let () =
     done;
     Printf.printf "\n";
   done;
-  let left = range 0 g0'.n in
-  let right = range 0 g1'.n in
 (*  Printf.printf "%i\n" (List.length left);
   Printf.printf "%i\n" (List.nth left 0);
   Printf.printf "%i\n" (List.nth left 3);
   Printf.printf "%i\n" (List.nth left 17); *)
-  let solution = solve g0' g1' [] [] [{left=left; right=right}] in
+  let initial_label_classes = get_label_classes g0' g1' in
+  Printf.printf "Number of label classes %i\n" (List.length initial_label_classes);
+  let solution = solve g0' g1' [] [] initial_label_classes in
   Printf.printf "Length %i\n" (List.length solution);
 
