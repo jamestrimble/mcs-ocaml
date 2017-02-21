@@ -50,12 +50,46 @@ let max_set_size bidomain =
 let bound current bidomains =
   List.fold_left (+) (List.length current) (List.map min_set_size bidomains)
 
+let sort_bidomains bidomains =
+  let cmp b0 b1 = max_set_size b0 - max_set_size b1 in
+  List.sort cmp bidomains
+
+let filter_bidomain g0_adjrow g1_adjrow edge_type bidomain =
+  { left = List.filter (fun u -> g0_adjrow.(u)==edge_type) bidomain.left;
+    right = List.filter (fun u -> g1_adjrow.(u)==edge_type) bidomain.right
+  }
+
+let filter g0 g1 v w bidomains =
+  let head = List.hd bidomains in
+  let tail = List.tl bidomains in
+  let bidomains' = { left = List.filter (fun u -> u!=v) head.left;
+                     right = List.filter (fun u -> u!=v) head.right;
+                   } :: tail in
+  let g0_adjrow = g0.adjmat.(v) in
+  let g1_adjrow = g1.adjmat.(w) in
+  let fn = fun edge_type -> List.map (filter_bidomain g0_adjrow g1_adjrow edge_type) bidomains' in
+  List.map fn [0; 1; 2; 3] |> List.concat |> List.filter (fun b -> min_set_size b > 0)
+
+let remove_v v bidomains =
+  let head = List.hd bidomains in
+  let tail = List.tl bidomains in
+  let head' =
+    { left = List.filter (fun u -> u!=v) head.left;
+      right = head.right;
+    } in
+  if min_set_size head' == 0 then tail
+  else head' :: tail
+
 let solve g0 g1 incumbent current bidomains =
   let incumbent' =
     if List.length incumbent > List.length current then incumbent
     else current in
-  if (bound current bidomains) <= (List.length incumbent) then incumbent'
+  if (bound current bidomains) <= (List.length incumbent') then incumbent'
   else
+    let bidomains' = sort_bidomains bidomains in
+    let head = List.hd bidomains' in
+    let tail = List.tl bidomains' in
+    let v = List.hd head.left in
     incumbent'
 
 let () =
