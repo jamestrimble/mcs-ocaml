@@ -62,7 +62,7 @@ let filter g0 g1 v w bidomains =
   let head = List.hd bidomains in
   let tail = List.tl bidomains in
   let bidomains' = { left = List.filter (fun u -> u!=v) head.left;
-                     right = List.filter (fun u -> u!=v) head.right;
+                     right = List.filter (fun u -> u!=w) head.right;
                    } :: tail in
   let g0_adjrow = g0.adjmat.(v) in
   let g1_adjrow = g1.adjmat.(w) in
@@ -80,7 +80,11 @@ let remove_v v bidomains =
   else head' :: tail
 
 let rec solve g0 g1 incumbent current bidomains =
-  Printf.printf "%i\n" (List.length incumbent);
+(*  Printf.printf "%i\n" (List.length incumbent);
+  Printf.printf "%i\n" (List.length current);
+  List.iter (fun p ->
+    Printf.printf "%i->%i  " (fst p) (snd p)) current;
+  Printf.printf "%n"; *)
   let incumbent' =
     if List.length incumbent > List.length current then incumbent
     else current in
@@ -92,32 +96,61 @@ let rec solve g0 g1 incumbent current bidomains =
     (* try mapping v to each w in turn *)
     let incumbent'' =
       let fn = fun incumb w -> solve g0 g1 incumb ((v,w)::current) (filter g0 g1 v w bidomains') in
-      List.fold_left fn incumbent' head.right in
+      List.fold_left fn incumbent' head.right in 
     (* try leaving vertex v unassigned *)
     solve g0 g1 incumbent'' current (remove_v v bidomains)
+
+let adjrow_deg adjrow =
+  let x = Array.fold_left (fun a b -> if b land 1 == 1 then a+1 else a) 0 adjrow in
+  let y = Array.fold_left (fun a b -> if b land 2 == 2 then a+1 else a) 0 adjrow in
+  x + y
+
+let vv_order g =
+  range 0 g.n |> List.sort (fun v w -> adjrow_deg g.adjmat.(v) - adjrow_deg g.adjmat.(w)) |> List.rev
+
+let induced_subgraph g vv =
+  let n = Array.length vv in
+  let colours = Array.map (fun v -> g.colours.(v)) vv in
+  let adjmat = Array.map (fun v -> Array.map (fun w -> g.adjmat.(v).(w)) vv)
+                          vv in
+  { adjmat = adjmat;
+    colours = colours;
+    n      = n
+  }
 
 let () =
   let fname0 = Sys.argv.(1) in
   let fname1 = Sys.argv.(2) in
   let g0 = read_graph fname0 in
-  let g1 = read_graph fname0 in
-  Printf.printf "%i\n" g0.n;
-  Printf.printf "%i\n" g1.n;
-  Printf.printf "%i\n" g0.colours.(0);
+  let g1 = read_graph fname1 in
+  let vv0 = vv_order g0 in
+  let vv1 = vv_order g1 in
+  let g0' = induced_subgraph g0 (Array.of_list vv0) in
+  let g1' = induced_subgraph g1 (Array.of_list vv1) in
+(*  Printf.printf "%i\n" g0'.n;
+  Printf.printf "%i\n" g1'.n;
+  Printf.printf "%i\n" g0'.colours.(0);
   Printf.printf "%s\n" fname0;
-  Printf.printf "%s\n" fname1;
-  for i = 0 to g0.n-1 do
-    for j = 0 to g0.n-1 do
-      Printf.printf "%i " g0.adjmat.(i).(j);
+  Printf.printf "%s\n" fname1; *)
+  for i = 0 to g0'.n-1 do
+    for j = 0 to g0'.n-1 do
+      Printf.printf "%i " g0'.adjmat.(i).(j);
     done;
     Printf.printf "\n";
   done;
-  let left = range 0 g0.n in
-  let right = range 0 g1.n in
-  Printf.printf "%i\n" (List.length left);
+  Printf.printf "\n";
+  for i = 0 to g1'.n-1 do
+    for j = 0 to g1'.n-1 do
+      Printf.printf "%i " g1'.adjmat.(i).(j);
+    done;
+    Printf.printf "\n";
+  done;
+  let left = range 0 g0'.n in
+  let right = range 0 g1'.n in
+(*  Printf.printf "%i\n" (List.length left);
   Printf.printf "%i\n" (List.nth left 0);
   Printf.printf "%i\n" (List.nth left 3);
-  Printf.printf "%i\n" (List.nth left 17);
-  let solution = solve g0 g1 [] [] [{left=left; right=right}] in
+  Printf.printf "%i\n" (List.nth left 17); *)
+  let solution = solve g0' g1' [] [] [{left=left; right=right}] in
   Printf.printf "Length %i\n" (List.length solution);
 
