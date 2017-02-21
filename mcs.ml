@@ -158,11 +158,15 @@ let () =
   let g1' = induced_subgraph g1 (Array.of_list vv1) in 
   let initial_label_classes = get_label_classes g0' g1' in
   Printf.printf "Number of label classes %i\n" (List.length initial_label_classes);
-  let solution = search g0' g1' [[]] [] initial_label_classes in
-  Printf.printf "Best size %i\n" (List.length (List.hd solution));
-  Printf.printf "Length %i\n" (List.length solution);
+  let unsorted_solution = search g0' g1' [[]] [] initial_label_classes in
+  let solution =
+    let renumber_fun m = List.map (fun pair -> List.nth vv0 (fst pair), List.nth vv1 (snd pair)) m in
+    List.map renumber_fun unsorted_solution in
+  let solution' =
+    let sort_fun m = List.sort (fun pair0 pair1 -> fst pair0 - fst pair1) m in
+    List.map sort_fun solution in
+  Printf.printf "Best size %i\n" (List.length (List.hd solution'));
+  Printf.printf "Length %i\n" (List.length solution');
   List.iter (fun m ->
     List.iter (fun p -> Printf.printf "(%i -> %i) " (fst p) (snd p)) m;
-    Printf.printf "\n") solution;
-
-
+    Printf.printf "\n") solution';
